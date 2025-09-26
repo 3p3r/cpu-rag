@@ -1,0 +1,96 @@
+name: Publish Package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@3p3r"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run formatting
+        run: npm run lint
+
+      - name: Build package
+        run: npm run build
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Version and Changelog
+        id: version
+        run: |
+          # Install standard-version for automated versioning and changelog
+          npm install -g standard-version
+
+          # Generate version and changelog
+          standard-version --skip.commit --skip.tag
+
+          # Get the new version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          # Commit changes
+          git add .
+          git commit -m "chore(release): $NEW_VERSION"
+          git tag "v$NEW_VERSION"
+
+          # Push changes and tags
+          git push origin main
+          git push origin "v$NEW_VERSION"
+
+      - name: Update package.json for GitHub registry
+        run: |
+          # Update package.json to use GitHub registry scope
+          node -e "
+            const pkg = require('./package.json');
+            pkg.name = '@3p3r/cpu-embeddings';
+            pkg.publishConfig = {
+              registry: 'https://npm.pkg.github.com',
+              access: 'public'
+            };
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
+      - name: Publish to GitHub Package Registry
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.NEW_VERSION }}
+          release_name: Release v${{ steps.version.outputs.NEW_VERSION }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
