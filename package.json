@@ -42,8 +42,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@orama/orama": "^3.1.14",
+    "@orama/plugin-data-persistence": "^3.1.14",
     "@types/node": "^24.5.2",
     "@types/webpack-node-externals": "^3.0.4",
+    "cpu-embeddings": "^1.1.0",
+    "pdfreader": "^3.0.7",
     "standard-version": "^9.5.0",
     "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",
