@@ -68,6 +68,11 @@ async function getOrCreateDB(cacheKey: string): Promise<AnyOrama> {
   return db as AnyOrama;
 }
 
+/**
+ * Extracts text from a PDF file.
+ * @param pdfPath Path to the PDF file.
+ * @returns Extracted text as a string.
+ */
 export async function extract(pdfPath: string): Promise<string> {
   debug('Extracting text from PDF: %s', pdfPath);
   return new Promise((resolve, reject) => {
@@ -87,6 +92,11 @@ export async function extract(pdfPath: string): Promise<string> {
   });
 }
 
+/**
+ * Indexes PDF files in a directory into an Orama database.
+ * @param directoryPath Path to the directory containing PDF files.
+ * @returns The Orama database instance.
+ */
 export async function index(directoryPath: string): Promise<AnyOrama> {
   debug('Starting index for directory: %s', directoryPath);
   const directoryResolved = path.resolve(directoryPath);
@@ -123,7 +133,7 @@ export async function index(directoryPath: string): Promise<AnyOrama> {
     debug('Inserting document with ID: %s', id);
     await insert(db, {
       id,
-      embedding,
+      embedding: Array.from(embedding), // todo: move to cpu-embeddings
       content: text,
       path: file,
     });
@@ -140,6 +150,12 @@ export async function index(directoryPath: string): Promise<AnyOrama> {
   return db;
 }
 
+/**
+ * Queries the indexed database for the most relevant document to the given query.
+ * @param directoryPath Path to the directory containing indexed PDF files.
+ * @param query The query string.
+ * @returns The path of the most relevant document, or null if no match is found.
+ */
 export async function query(directoryPath: string, query: string): Promise<string | null> {
   debug('Starting query for directory: %s, query: %s', directoryPath, query);
   const directoryResolved = path.resolve(directoryPath);
