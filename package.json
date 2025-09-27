@@ -8,6 +8,7 @@
     "dist"
   ],
   "scripts": {
+    "postinstall": "cp -R node_modules/cpu-embeddings/models .",
     "build": "webpack",
     "build:watch": "webpack --watch",
     "test": "vitest",
