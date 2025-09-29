@@ -1,9 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { extract, index, query } from './index.js';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { describe, expect, it } from 'vitest';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { extract, index, query } from './index.js';
 
 describe('CPU-RAG Library', () => {
   describe('extract', () => {
@@ -21,18 +19,15 @@ describe('CPU-RAG Library', () => {
       const directoryPath = path.join(__dirname, '../fixtures');
       const db = await index(directoryPath);
       expect(db).toBeDefined();
-      // Assuming the database has some documents after indexing
-      // You can add more specific assertions based on the database structure
     });
   });
 
   describe('query', () => {
     it('should query the indexed database', async () => {
       const directoryPath = path.join(__dirname, '../fixtures');
-      const queryString = 'sample'; // Assuming 'sample' might be in the PDFs
+      const queryString = 'climate';
       const result = await query(directoryPath, queryString);
       expect(result).toBeDefined();
-      // Result can be a string (path) or null
       if (result !== null) {
         expect(typeof result).toBe('string');
         expect(result.endsWith('.pdf')).toBe(true);

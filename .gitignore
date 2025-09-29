@@ -1,4 +1,6 @@
 models/
+fixtures/
+!fixtures/sample-*.pdf
 
 # Logs
 logs
