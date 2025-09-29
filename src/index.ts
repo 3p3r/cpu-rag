@@ -200,7 +200,7 @@ function saveToAudioFile(outputPath: string): Writable {
   const inputStream = new PassThrough();
 
   ffmpeg(inputStream)
-    .inputFormat('f32le') // Float32 little-endian for samples between -1 and 1
+    .inputFormat('s8') // 8-bit signed PCM
     .inputOptions([`-ar ${sampleRate}`, `-ac ${channels}`])
     .audioCodec('flac')
     .output(outputPath)
@@ -213,6 +213,21 @@ function saveToAudioFile(outputPath: string): Writable {
     .run();
 
   return inputStream;
+}
+
+/**
+ * Converts floats between -1 and 1 to PCM 8-bit signed integers.
+ * @param floatArray Array of floats between -1 and 1
+ * @returns Buffer containing PCM 8-bit signed integers
+ */
+function fl32eToS8(floatArray: Float32Array) {
+  const u8Array = new Uint8Array(floatArray.length);
+  for (let i = 0; i < floatArray.length; i++) {
+    const sample = Math.max(-1, Math.min(1, floatArray[i]));
+    const scaled = Math.round(sample * 127);
+    u8Array[i] = Math.max(-128, Math.min(127, scaled));
+  }
+  return Buffer.from(u8Array);
 }
 
 /**
@@ -241,9 +256,8 @@ export async function vocalize(directoryPath: string, outputPath: string): Promi
     const result = await search(db, {
       limit: 1,
       offset: 0,
-      where: {
-        path: file,
-      },
+      term: file,
+      exact: true,
       includeVectors: true,
     });
     if (result.hits.length > 0) {
@@ -252,8 +266,8 @@ export async function vocalize(directoryPath: string, outputPath: string): Promi
       const paddedLength = Math.ceil(vector.length / 1024) * 1024;
       const paddedVector = new Float32Array(paddedLength);
       paddedVector.set(vector);
-      const buffer = Buffer.from(paddedVector.buffer);
-      const canWrite = outputStream.write(buffer);
+      const converted = fl32eToS8(new Float32Array(paddedVector));
+      const canWrite = outputStream.write(converted);
       if (!canWrite) {
         debug('Backpressure detected, waiting for drain');
         await new Promise((resolve) => outputStream.once('drain', resolve));
